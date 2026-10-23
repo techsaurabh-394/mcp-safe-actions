@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use mcp-safe-actions, please cite it."
+title: "mcp-safe-actions"
+version: 1.1.0
+authors:
+  - family-names: "Pathak"
+    given-names: "Saurabh"
+    email: "saurabhpathak394@gmail.com"
+    alias: "techsaurabh-394"
+repository-code: "https://github.com/techsaurabh-394/mcp-safe-actions"
+license: MIT
+keywords: [mcp, model-context-protocol, ai-agents, human-in-the-loop, safety]

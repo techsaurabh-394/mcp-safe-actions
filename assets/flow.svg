@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="300" viewBox="0 0 1000 300" role="img" aria-label="Flow: the model calls a tool, the server builds a preview, the human approves, then the action runs and is audited.">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#1b1646"/></linearGradient>
+<marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8b93a7"/></marker></defs>
+<style>text{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif}.t{font-size:16px;font-weight:700;fill:#fff}.u{font-size:12px;fill:#aab2c8}
+@keyframes dash{to{stroke-dashoffset:-24}}.ln{stroke:#6ea8fe;stroke-width:2.5;stroke-dasharray:6 6;animation:dash 1s linear infinite}
+@keyframes glow{0%,100%{opacity:.55}20%{opacity:1}}
+.n1{animation:glow 5s infinite}.n2{animation:glow 5s 1s infinite}.n3{animation:glow 5s 2s infinite}.n4{animation:glow 5s 3s infinite}.n5{animation:glow 5s 4s infinite}</style>
+<rect width="1000" height="300" rx="18" fill="url(#bg)"/>
+<text x="500" y="38" text-anchor="middle" font-size="20" font-weight="800" fill="#fff">The model proposes. The human decides.</text>
+<g fill="#1b2150" stroke="#4a549a" stroke-width="1.5">
+<rect class="n1" x="30" y="90" width="160" height="80" rx="14"/><rect class="n2" x="215" y="90" width="160" height="80" rx="14"/><rect class="n3" x="400" y="90" width="160" height="80" rx="14" stroke="#7ee2b8"/><rect class="n4" x="585" y="90" width="160" height="80" rx="14"/><rect class="n5" x="770" y="90" width="200" height="80" rx="14"/></g>
+<g text-anchor="middle">
+<text class="t" x="110" y="124">1 · Model calls</text><text class="u" x="110" y="146">delete_file(...)</text>
+<text class="t" x="295" y="124">2 · Preview</text><text class="u" x="295" y="146">plan, no side effects</text>
+<text class="t" x="480" y="124">3 · Human asks</text><text class="u" x="480" y="146">approve or decline</text>
+<text class="t" x="665" y="124">4 · Execute</text><text class="u" x="665" y="146">only if approved</text>
+<text class="t" x="870" y="124">5 · Audit</text><text class="u" x="870" y="146">JSONL, no raw args</text></g>
+<g marker-end="url(#ar)"><line class="ln" x1="192" y1="130" x2="213" y2="130"/><line class="ln" x1="377" y1="130" x2="398" y2="130"/><line class="ln" x1="562" y1="130" x2="583" y2="130"/><line class="ln" x1="747" y1="130" x2="768" y2="130"/></g>
+<text x="500" y="214" text-anchor="middle" class="u">Client supports MCP elicitation: the prompt goes straight to the human. The model cannot approve its own action.</text>
+<text x="500" y="240" text-anchor="middle" class="u">Client does not: step 3 becomes a one-time token bound to the exact arguments, and the model must ask the user in chat.</text>
+</svg>

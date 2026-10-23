@@ -1,0 +1,61 @@
+{
+  "name": "mcp-safe-actions",
+  "version": "1.1.0",
+  "description": "Make destructive MCP tools safe: asks the human through MCP elicitation, falls back to a one-time approval token for clients without it, and keeps an audit log.",
+  "author": "Saurabh Pathak <saurabhpathak394@gmail.com> (https://github.com/techsaurabh-394)",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "demo": "npm run build && node dist/examples/demo.js",
+    "prepublishOnly": "npm test",
+    "prepare": "npm run build",
+    "coverage": "npm run build && node --test --experimental-test-coverage dist/test/*.test.js",
+    "mutation": "bash scripts/mutation-check.sh"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "human-in-the-loop",
+    "elicitation",
+    "approval",
+    "safety",
+    "claude",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/techsaurabh-394/mcp-safe-actions.git"
+  },
+  "bugs": {
+    "url": "https://github.com/techsaurabh-394/mcp-safe-actions/issues"
+  },
+  "homepage": "https://github.com/techsaurabh-394/mcp-safe-actions#readme",
+  "funding": "https://buymeacoffee.com/saurabhdev",
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^5.9.3"
+  }
+}

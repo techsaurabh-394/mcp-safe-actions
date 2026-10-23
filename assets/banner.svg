@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="mcp-safe-actions: human approval for MCP tools. An approval dialog asks the user before a destructive action runs.">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#1b1646"/></linearGradient>
+<linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6ea8fe"/><stop offset="1" stop-color="#7ee2b8"/></linearGradient></defs>
+<style>
+text{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.a{animation:rise .9s ease-out both}.b{animation:rise .9s .3s ease-out both}.c{animation:rise .9s .6s ease-out both}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.btn{animation:pulse 2s ease-in-out infinite}
+@keyframes slide{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.card{animation:slide .9s .5s ease-out both}
+</style>
+<rect width="1200" height="320" fill="url(#bg)"/>
+<g stroke="rgba(255,255,255,.05)"><path d="M0 64H1200M0 128H1200M0 192H1200M0 256H1200M120 0V320M360 0V320M600 0V320M840 0V320M1080 0V320"/></g>
+<text class="a" x="70" y="112" font-size="60" font-weight="800" fill="#fff">mcp-safe-actions</text>
+<rect class="a" x="72" y="130" width="150" height="5" rx="2.5" fill="url(#ac)"/>
+<text class="b" x="72" y="180" font-size="26" font-weight="600" fill="url(#ac)">No approval, no action.</text>
+<text class="b" x="72" y="220" font-size="19" fill="#c8cede">Human-in-the-loop for destructive MCP tools.</text>
+<text class="b" x="72" y="248" font-size="19" fill="#c8cede">Elicitation first, one-time token fallback, audit log.</text>
+<text class="c" x="72" y="292" font-size="16" fill="#8b93a7">By Saurabh Pathak · TypeScript · MIT</text>
+<g class="card" transform="translate(790 70)">
+<rect width="330" height="180" rx="16" fill="#151a36" stroke="#3a4380" stroke-width="1.5"/>
+<text x="22" y="36" font-size="15" font-weight="700" fill="#e6e8ee">Approve this action?</text>
+<text x="22" y="68" font-size="15" fill="#c8cede">Permanently delete "report.pdf"</text>
+<text x="22" y="92" font-size="13" fill="#8b93a7">This cannot be undone.</text>
+<rect x="22" y="124" width="120" height="38" rx="10" fill="#2a2f55"/><text x="82" y="148" text-anchor="middle" font-size="15" fill="#e6e8ee">Decline</text>
+<g class="btn"><rect x="160" y="124" width="148" height="38" rx="10" fill="#7ee2b8"/><text x="234" y="148" text-anchor="middle" font-size="15" font-weight="700" fill="#0b1020">Approve</text></g>
+</g>
+</svg>
