@@ -20,7 +20,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
       # Publishes to npm only if you set the repository variable PUBLISH_NPM=true
