@@ -18,8 +18,10 @@ npm run demo     # prints both approval flows
 ```
 
 ## Publishing to npm (maintainer)
-1. Create an npm access token (automation type) and add it as the repository secret `NPM_TOKEN`.
+Publishing is locked to the repository owner (`techsaurabh-394`):
+1. Create a granular npm access token limited to the `mcp-safe-actions` package (write only, with an expiry) and add it as the secret `NPM_TOKEN` in the `npm-publish` environment (Settings, Environments).
 2. Set the repository variable `PUBLISH_NPM` to `true`.
-3. Tag a release: `git tag v1.0.0 && git push --tags`.
+3. Tag a release: `git tag v1.1.0 && git push --tags`.
+4. The publish job waits for the owner's approval in the `npm-publish` environment, which only accepts `v*` tags. Publishing uses npm provenance, so the package is tied to this repo.
 
 Maintained by Saurabh Pathak.
