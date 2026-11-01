@@ -1,18 +1,19 @@
 # Testing
 
 ```bash
-npm test            # build, then 49 tests
+npm test            # build, then 55 tests
 npm run coverage    # same, with Node's built-in coverage report
 npm run mutation    # break the code on purpose; the tests must notice
 npm run demo        # watch both approval flows
 ```
 
-## What the 49 tests cover
+## What the 55 tests cover
 | Group | File | What it proves |
 |---|---|---|
 | Approval flows | `test/safe-actions.test.ts` | Elicitation approve, decline, cancel, unticked box; failure of the prompt fails closed; token flow (preview, approve, reuse, wrong arguments, invented, expired); modes; error paths; tool metadata |
 | Edge cases | `test/edge.test.ts` | Reserved name, prompt timeout, `form` vs `url` elicitation capabilities, argument order, unicode, 5 concurrent previews, **two simultaneous uses of one token run once**, cross-tool tokens with a shared store, custom annotations, token cap, **secret values never reach the audit log** |
 | Store, audit, hashing | `test/store.test.ts`, `test/audit-and-hash.test.ts` | Single-use, binding, expiry boundary, cap and eviction, 1000 unique random tokens, JSONL audit file, audit never throws on a bad path, **property tests** (300 random argument objects: hash ignores key order, changes when values change) |
+| Policy | `test/policy.test.ts` | Low-risk call runs without a prompt and is logged `auto-approved`; high-risk call still asks (decline runs nothing); no-prompt client gets the token flow; a throwing policy fails closed; only exact `true` counts; `mode: "elicit"` ignores the policy |
 | Real process, real stdio | `test/stdio.e2e.test.ts` | Spawns the example server as a child process and talks MCP over stdio: preview leaves the file alone, token approval deletes it, audit log written, **path traversal blocked, symlinked-folder escape blocked, folders and symlinks refused, token for one file can't delete another** |
 
 Human behaviour is simulated by an in-memory MCP client that sets `capabilities: { elicitation: {} }` and answers prompts (accept, decline, cancel, error, never answer).
@@ -22,7 +23,7 @@ Library source (`src/`): **100% of lines and functions**; branches 100% (`audit`
 Run `npm run coverage` for the current numbers.
 
 ## Mutation check: do the tests actually protect the rules?
-High coverage only shows code ran, not that a bug would be caught. `scripts/mutation-check.sh` injects **10 deliberate bugs**, one at a time, runs the suite, and requires it to fail each time:
+High coverage only shows code ran, not that a bug would be caught. `scripts/mutation-check.sh` injects **14 deliberate bugs**, one at a time, runs the suite, and requires it to fail each time:
 
 | Injected bug | Caught |
 |---|---|
@@ -36,6 +37,10 @@ High coverage only shows code ran, not that a bug would be caught. `scripts/muta
 | A model-supplied token skips the human prompt | yes |
 | `mode: "elicit"` allows clients with no prompts | yes |
 | Secret arguments leak into the audit log | yes |
+| A throwing `autoApprove` policy fails open | yes |
+| Any truthy policy value (not just `true`) skips the human | yes |
+| `mode: "elicit"` lets the policy skip the human | yes |
+| The policy always approves, ignoring its answer | yes |
 
 **An honest note:** the first version of the audit-leak test was too weak. Injecting the bug did not fail any test, so the check reported it as missed. The test was rewritten to use a real secret value (`sk-SECRET-123`) and now fails when the bug is injected. This is exactly why the mutation check exists.
 

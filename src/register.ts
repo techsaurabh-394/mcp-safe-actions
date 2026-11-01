@@ -29,6 +29,7 @@ export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
    * auto  (default): ask the user through MCP elicitation if the client supports it, otherwise use a one-time token.
    * elicit: require elicitation. Clients without it get a refusal and nothing changes.
    * token : always use the two-step token flow.
+   * Note: `autoApprove` is ignored in "elicit" mode, because that mode means a human must always decide.
    */
   mode?: ConfirmMode;
   store?: ApprovalStore;
@@ -36,6 +37,13 @@ export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
   annotations?: ToolAnnotations;
   /** How long to wait for the human to answer the approval prompt. Default 5 minutes. A timeout counts as "not approved". */
   approvalTimeoutMs?: number;
+  /**
+   * Optional policy: return exactly `true` to run a LOW-RISK call without asking a human
+   * (e.g. a file under ./tmp). Anything else, including a thrown error, falls back to the normal
+   * approval flow (fail closed). Keep it strict: it is a bypass of the human gate. It runs after
+   * preview(), and the decision is logged as "auto-approved".
+   */
+  autoApprove?: (args: z.infer<z.ZodObject<Shape>>, plan: Preview) => boolean | Promise<boolean>;
 }
 
 const text = (t: string, isError = false): CallToolResult => ({
@@ -67,7 +75,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
   const store = cfg.store ?? new ApprovalStore();
   const risk = cfg.risk ?? "destructive";
   const mode: ConfirmMode = cfg.mode ?? "auto";
-  const emit = (event: Parameters<AuditSink>[0]["event"], m: "elicit" | "token", extra: { summary?: string; argsHash?: string; detail?: string } = {}) =>
+  const emit = (event: Parameters<AuditSink>[0]["event"], m: "elicit" | "token" | "policy", extra: { summary?: string; argsHash?: string; detail?: string } = {}) =>
     cfg.audit?.({ time: new Date().toISOString(), tool: cfg.name, event, mode: m, ...extra });
 
   const shape = {
@@ -90,7 +98,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
     ...cfg.annotations,
   };
 
-  const run = async (args: z.infer<z.ZodObject<Shape>>, m: "elicit" | "token", summary: string, argsHash: string): Promise<CallToolResult> => {
+  const run = async (args: z.infer<z.ZodObject<Shape>>, m: "elicit" | "token" | "policy", summary: string, argsHash: string): Promise<CallToolResult> => {
     try {
       const result = await cfg.execute(args);
       emit("executed", m, { summary, argsHash });
@@ -117,6 +125,20 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
         return text(`Could not prepare the action, so nothing was changed: ${e instanceof Error ? e.message : String(e)}`, true);
       }
       const canElicit = clientCanElicit(server);
+
+      // Optional low-risk policy. Only an exact `true` skips the human; a throw or any other value asks as usual.
+      if (cfg.autoApprove && mode !== "elicit") {
+        let auto = false;
+        try {
+          auto = (await cfg.autoApprove(args, plan)) === true;
+        } catch {
+          auto = false; // fail closed
+        }
+        if (auto) {
+          emit("auto-approved", "policy", { summary: plan.summary, argsHash });
+          return run(args, "policy", plan.summary, argsHash);
+        }
+      }
 
       if (mode === "elicit" && !canElicit) {
         emit("blocked", "elicit", { summary: plan.summary, argsHash });

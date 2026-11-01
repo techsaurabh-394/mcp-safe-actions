@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+- `autoApprove(args, plan)` policy: let narrowly-defined low-risk calls run without a prompt; everything else still asks. Only an exact `true` counts, a throwing policy fails closed, and `mode: "elicit"` ignores it
+- New audit event `auto-approved` (audit mode `policy`)
+- 6 new policy tests (55 total) and 4 new mutation checks (14 total, all caught)
+
 ## 1.1.0
 - Approval prompt timeout (`approvalTimeoutMs`), counted as "not approved"
 - `confirm_token` is now a reserved input name (clear error at registration)

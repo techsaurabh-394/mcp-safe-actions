@@ -34,6 +34,10 @@ mutate "unticked approve box counts as yes"                 src/register.ts " &&
 mutate "a model-supplied token skips the human prompt"      src/register.ts 'if (canElicit && mode !== "token") {' 'if (canElicit && mode !== "token" && !confirm_token) {'
 mutate "mode elicit allows clients with no prompt"          src/register.ts 'if (mode === "elicit" && !canElicit) {' "if (false) {"
 mutate "secret arguments leak into the audit log"           src/register.ts 'emit("executed", m, { summary, argsHash });' 'emit("executed", m, { summary: JSON.stringify(args), argsHash });'
+mutate "a throwing policy fails open"                       src/register.ts 'auto = false; // fail closed' 'auto = true;'
+mutate "any truthy policy value skips the human"            src/register.ts 'auto = (await cfg.autoApprove(args, plan)) === true;' 'auto = Boolean(await cfg.autoApprove(args, plan));'
+mutate "mode elicit lets the policy skip the human"         src/register.ts 'if (cfg.autoApprove && mode !== "elicit") {' 'if (cfg.autoApprove) {'
+mutate "policy ignores the answer and always approves"      src/register.ts 'if (auto) {' 'if (true) {'
 
 restore
 echo

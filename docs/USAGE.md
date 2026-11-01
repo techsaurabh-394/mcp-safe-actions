@@ -17,12 +17,22 @@ See the [README quick start](../README.md#quick-start).
 | `audit` | none | A function receiving each event, or `fileAudit("path.jsonl")` |
 | `annotations` | `{}` | Overrides merged into the tool annotations |
 | `approvalTimeoutMs` | 300000 | How long to wait for the human; a timeout counts as "not approved" |
+| `autoApprove` | none | `(args, plan) => boolean`. Only an exact `true` runs the call without asking. Ignored in `mode: "elicit"` |
 
 ## Audit events
 ```json
 {"time":"2026-10-23T09:12:03.411Z","tool":"delete_file","event":"previewed","mode":"elicit","summary":"Permanently delete \"report.pdf\"","argsHash":"3f1c..."}
 ```
-Events: `previewed`, `approved`, `declined`, `executed`, `failed`, `rejected`, `blocked`. Raw arguments are never logged.
+Events: `previewed`, `approved`, `declined`, `executed`, `failed`, `rejected`, `blocked`, `auto-approved`. Raw arguments are never logged.
+
+## Auto-approve low-risk calls (policy)
+```ts
+registerConfirmedTool(server, {
+  /* ... */
+  autoApprove: ({ path }) => path.startsWith("scratch/"), // everything else still asks a human
+});
+```
+Rules, all covered by tests: only an exact `true` skips the human; a throw or any other value (`"yes"`, `1`) asks as usual; `mode: "elicit"` ignores the policy because a human must always decide; the call is audited as `auto-approved` with mode `policy`. Keep the policy narrow, since it is a deliberate bypass of the approval step. Never base it on text the model wrote.
 
 ## Shared store and shorter tokens
 ```ts

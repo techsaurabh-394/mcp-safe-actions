@@ -8,7 +8,7 @@ import { ApprovalStore, registerConfirmedTool, type AuditEvent, type ConfirmMode
 
 export type ClientBehaviour = "none" | "accept" | "decline" | "cancel" | "accept-unticked" | "throw";
 
-export async function setup(opts: { client: ClientBehaviour; mode?: ConfirmMode; risk?: "destructive" | "write"; store?: ApprovalStore; failExecute?: boolean; failPreview?: boolean }) {
+export async function setup(opts: { client: ClientBehaviour; mode?: ConfirmMode; risk?: "destructive" | "write"; store?: ApprovalStore; failExecute?: boolean; failPreview?: boolean; autoApprove?: (args: { path: string }) => boolean | Promise<boolean> }) {
   const executed: Array<{ path: string }> = [];
   const events: AuditEvent[] = [];
   const prompts: string[] = [];
@@ -21,6 +21,7 @@ export async function setup(opts: { client: ClientBehaviour; mode?: ConfirmMode;
     risk: opts.risk,
     mode: opts.mode,
     store: opts.store,
+    autoApprove: opts.autoApprove,
     audit: (e) => events.push(e),
     preview: ({ path }) => {
       if (opts.failPreview) throw new Error("file not found");

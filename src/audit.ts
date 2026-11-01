@@ -2,13 +2,13 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
-export type AuditEventName = "previewed" | "approved" | "declined" | "executed" | "failed" | "rejected" | "blocked";
+export type AuditEventName = "previewed" | "approved" | "declined" | "executed" | "failed" | "rejected" | "blocked" | "auto-approved";
 
 export interface AuditEvent {
   time: string;
   tool: string;
   event: AuditEventName;
-  mode: "elicit" | "token";
+  mode: "elicit" | "token" | "policy";
   /** Short human-readable plan. Raw arguments are never logged (they may contain secrets). */
   summary?: string;
   argsHash?: string;
