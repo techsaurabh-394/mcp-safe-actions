@@ -73,6 +73,11 @@ export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
    * as a third argument and shown to the human in the approval prompt.
    */
   resolve?: (args: z.infer<z.ZodObject<Shape>>) => ResolvedContext | Promise<ResolvedContext>;
+  /**
+   * Used with `resolve`: which fields of the resolved context must still be identical right before `execute`
+   * (default: all). List only stable fields (label, role, url); leave out volatile ones such as coordinates or timestamps.
+   */
+  pinFields?: string[];
   /** Used with `resolve`: if the resolved context matches, `autoApprove` is skipped. Runs before `autoApprove`. */
   gate?: ContextGate;
   autoApprove?: (args: z.infer<z.ZodObject<Shape>>, plan: Preview, context?: ResolvedContext) => boolean | Promise<boolean>;
@@ -147,7 +152,27 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
     ...cfg.annotations,
   };
 
-  const run = async (args: z.infer<z.ZodObject<Shape>>, m: "elicit" | "token" | "policy" | "channel", summary: string, argsHash: string): Promise<CallToolResult> => {
+  const ctxHashOf = (ctx: ResolvedContext): string => {
+    const keys = cfg.pinFields ?? Object.keys(ctx);
+    return hashArgs(Object.fromEntries(keys.map((k) => [k, ctx[k]])));
+  };
+
+  const run = async (args: z.infer<z.ZodObject<Shape>>, m: "elicit" | "token" | "policy" | "channel", summary: string, argsHash: string, ctxHash?: string): Promise<CallToolResult> => {
+    // The screen can change between approval and execution (a dialog opens, a list re-sorts). Look the target up
+    // again and refuse if it is not what the human approved. A failed lookup also refuses (fail closed).
+    if (cfg.resolve) {
+      let now: string | undefined;
+      try {
+        const r = await cfg.resolve(args);
+        if (isPlainObject(r)) now = ctxHashOf(r);
+      } catch {
+        now = undefined;
+      }
+      if (now !== ctxHash) {
+        emit("context-changed", m, { summary, argsHash, detail: "the target changed between approval and execution" });
+        return text("The target changed after it was approved (or could not be checked again), so nothing was changed. Look again and ask for approval again.", true);
+      }
+    }
     try {
       const result = await cfg.execute(args);
       emit("executed", m, { summary, argsHash });
@@ -202,6 +227,8 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
         }
       }
 
+      const ctxHash = context ? ctxHashOf(context) : undefined;
+
       // Optional low-risk policy. Only an exact `true` skips the human; a throw or any other value asks as usual.
       if (cfg.autoApprove && mode !== "elicit" && mode !== "channel" && !gated) {
         let auto = false;
@@ -212,7 +239,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
         }
         if (auto) {
           emit("auto-approved", "policy", { summary: plan.summary, argsHash });
-          return run(args, "policy", plan.summary, argsHash);
+          return run(args, "policy", plan.summary, argsHash, ctxHash);
         }
       }
 
@@ -233,7 +260,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
         }
         if (ok) {
           emit("approved", "channel", { summary: plan.summary, argsHash });
-          return run(args, "channel", plan.summary, argsHash);
+          return run(args, "channel", plan.summary, argsHash, ctxHash);
         }
         emit("declined", "channel", { summary: plan.summary, argsHash });
         return text("The approver did not approve this action, so nothing was changed. Do not retry unless the user asks again.");
@@ -269,7 +296,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
         }
         if (answer.action === "accept" && answer.content?.approve === true) {
           emit("approved", "elicit", { summary: plan.summary, argsHash });
-          return run(args, "elicit", plan.summary, argsHash);
+          return run(args, "elicit", plan.summary, argsHash, ctxHash);
         }
         emit("declined", "elicit", { summary: plan.summary, argsHash });
         return text("The user did not approve this action, so nothing was changed. Do not retry unless the user asks again.");
@@ -277,7 +304,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
 
       // Token flow for clients without elicitation (or mode "token").
       if (!confirm_token) {
-        const { token, expiresAt } = store.issue(cfg.name, rest);
+        const { token, expiresAt } = store.issue(cfg.name, rest, ctxHash);
         emit("previewed", "token", { summary: plan.summary, argsHash });
         const mins = Math.max(1, Math.round((expiresAt - Date.now()) / 60_000));
         return text(
@@ -286,14 +313,14 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
             `confirm_token="${token}". The token works once and expires in about ${mins} minutes.`
         );
       }
-      const check = store.consume(confirm_token, cfg.name, rest);
+      const check = store.consume(confirm_token, cfg.name, rest, ctxHash);
       if (!check.ok) {
         emit("rejected", "token", { summary: plan.summary, argsHash, detail: check.reason });
-        const why = { unknown: "that token is not valid", expired: "that token has expired", mismatch: "the arguments differ from the ones that were previewed" }[check.reason];
+        const why = { unknown: "that token is not valid", expired: "that token has expired", mismatch: "the arguments differ from the ones that were previewed", context: "the target is no longer the one that was previewed" }[check.reason];
         return text(`Not approved: ${why}. Nothing was changed. Call ${cfg.name} again without a token to get a fresh preview.`, true);
       }
       emit("approved", "token", { summary: plan.summary, argsHash });
-      return run(args, "token", plan.summary, argsHash);
+      return run(args, "token", plan.summary, argsHash, ctxHash);
     }) as never
   );
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+- Re-check before execute: when a tool uses `resolve`, it is called again right before `execute` and the call is refused if the target is not the one the human approved (the UI can change in between). A failed or non-object second lookup also refuses. Applies to auto-approved, elicited, channel and token calls
+- New `pinFields` option to compare only stable fields (label, role, url) and ignore volatile ones
+- Token flow: tokens are now bound to the resolved target too; a token used after the target changed is rejected
+- New audit event `context-changed`
+- 15 new tests (101 total) and 11 new mutation checks (42 total, all caught)
+
 ## 1.3.0
 - `resolve(args)`: optional lookup of what a call actually targets (for example the label and role of the element behind `click(element_id)`), run before the policy. The result is shown in the approval prompt and passed to `autoApprove` as a third argument
 - `gate: { pattern, fields? }`: if the resolved context matches, `autoApprove` is skipped and a human decides. Checked before the policy, so a policy that returns `true` cannot override it

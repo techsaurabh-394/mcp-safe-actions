@@ -2,7 +2,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
-export type AuditEventName = "previewed" | "approved" | "declined" | "executed" | "failed" | "rejected" | "blocked" | "auto-approved";
+export type AuditEventName = "previewed" | "approved" | "declined" | "executed" | "failed" | "rejected" | "blocked" | "auto-approved" | "context-changed";
 
 export interface AuditEvent {
   time: string;

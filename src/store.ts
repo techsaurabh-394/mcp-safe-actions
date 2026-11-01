@@ -29,10 +29,12 @@ export interface StoreOptions {
 interface Pending {
   tool: string;
   argsHash: string;
+  /** Hash of the resolved target the human was shown, when the tool uses `resolve`. */
+  ctxHash?: string;
   expiresAt: number;
 }
 
-export type ConsumeResult = { ok: true } | { ok: false; reason: "unknown" | "expired" | "mismatch" };
+export type ConsumeResult = { ok: true } | { ok: false; reason: "unknown" | "expired" | "mismatch" | "context" };
 
 /** One-time approval tokens, each bound to one tool and one exact set of arguments. */
 export class ApprovalStore {
@@ -47,7 +49,7 @@ export class ApprovalStore {
     this.now = opts.now ?? Date.now;
   }
 
-  issue(tool: string, args: unknown): { token: string; expiresAt: number } {
+  issue(tool: string, args: unknown, ctxHash?: string): { token: string; expiresAt: number } {
     this.prune();
     while (this.pending.size >= this.maxPending) {
       const oldest = this.pending.keys().next().value;
@@ -56,12 +58,12 @@ export class ApprovalStore {
     }
     const token = `approve_${randomBytes(16).toString("hex")}`;
     const expiresAt = this.now() + this.ttlMs;
-    this.pending.set(token, { tool, argsHash: hashArgs(args), expiresAt });
+    this.pending.set(token, { tool, argsHash: hashArgs(args), ctxHash, expiresAt });
     return { token, expiresAt };
   }
 
   /** Valid only once, only for the same tool and arguments, only before it expires. */
-  consume(token: string, tool: string, args: unknown): ConsumeResult {
+  consume(token: string, tool: string, args: unknown, ctxHash?: string): ConsumeResult {
     const entry = this.pending.get(token);
     if (!entry) return { ok: false, reason: "unknown" };
     if (entry.expiresAt <= this.now()) {
@@ -69,6 +71,7 @@ export class ApprovalStore {
       return { ok: false, reason: "expired" };
     }
     if (entry.tool !== tool || entry.argsHash !== hashArgs(args)) return { ok: false, reason: "mismatch" };
+    if (entry.ctxHash !== ctxHash) return { ok: false, reason: "context" };
     this.pending.delete(token);
     return { ok: true };
   }

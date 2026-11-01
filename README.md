@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/techsaurabh-394/mcp-safe-actions/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/techsaurabh-394/mcp-safe-actions/ci.yml?style=for-the-badge&label=CI" alt="CI"/></a>
-  <img src="https://img.shields.io/badge/tests-86%20passing-brightgreen?style=for-the-badge" alt="86 tests passing"/>
+  <img src="https://img.shields.io/badge/tests-101%20passing-brightgreen?style=for-the-badge" alt="101 tests passing"/>
   <img src="https://img.shields.io/badge/coverage-100%25%20lines-brightgreen?style=for-the-badge" alt="100% line coverage"/>
   <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript strict"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT"/></a>
@@ -84,7 +84,7 @@ git clone https://github.com/techsaurabh-394/mcp-safe-actions.git
 cd mcp-safe-actions
 npm install
 npm run demo      # prints both approval flows
-npm test          # 86 tests
+npm test          # 101 tests
 ```
 
 ### 4. Connect it to an MCP client
@@ -163,9 +163,9 @@ sequenceDiagram
 ## Proof it works: tests that try to break it
 | | |
 |---|---|
-| **86 tests** | Unit, end-to-end (a real MCP client and server in memory), property tests (300 random argument objects), and **real stdio tests** that spawn the example server as a child process |
+| **101 tests** | Unit, end-to-end (a real MCP client and server in memory), property tests (300 random argument objects), and **real stdio tests** that spawn the example server as a child process |
 | **100% line coverage** of the library (`src/`), 96.8% to 100% of branches | `npm run coverage` |
-| **31 deliberate bugs, all caught** | `npm run mutation` breaks the code on purpose (token reusable, approval skipped on error, secrets in the log, ...) and fails if the tests don't notice |
+| **42 deliberate bugs, all caught** | `npm run mutation` breaks the code on purpose (token reusable, approval skipped on error, secrets in the log, ...) and fails if the tests don't notice |
 
 What the tests prove, among other things: a declined prompt never runs the action; a model-supplied token cannot skip the human prompt; tokens are single-use, expire, and only work for the same tool and arguments; two simultaneous uses of one token run the action exactly once; a prompt that times out or crashes fails closed; secret argument values never reach the audit log; the example server blocks path traversal and symlink escapes.
 
@@ -199,6 +199,7 @@ registerConfirmedTool(server, {
   approvalTimeoutMs?: number,                 // default 5 minutes; a timeout means "not approved"
   approver?: (req) => boolean | Promise<boolean>, // required for mode "channel"
   resolve?(args) => { label?, role?, url?, ... }, // optional: look up what the call actually targets, before the policy runs
+  pinFields?: string[],                        // optional: which resolved fields must be unchanged right before execute (default: all)
   gate?: { pattern: RegExp, fields?: string[] },  // optional: if the resolved context matches, autoApprove is skipped
   autoApprove?(args, plan, context) => boolean, // optional: exactly `true` skips the prompt for low-risk calls
   store?: new ApprovalStore({ ttlMs, maxPending }),
@@ -216,6 +217,8 @@ registerConfirmedTool(server, {
   autoApprove: (_args, _plan, ctx) => ctx?.role === "button",          // only reached if the gate did not match
 });
 ```
+**The screen can change between approval and execution** (a dialog opens, a list re-sorts), so `resolve` runs a second time right before `execute`. If the resolved context is different from the one the human approved, nothing runs, the audit log gets a `context-changed` event, and the model is told to ask again. A failed second lookup also refuses. In the token flow the token is bound to the resolved target as well. By default every returned field is compared; set `pinFields: ["label", "role", "url"]` to leave out volatile ones like coordinates.
+
 Rules, all fail closed: a gate match always asks a human, even if `autoApprove` says yes. If `resolve` throws, rejects or returns anything other than a plain object (for example `undefined` for an unknown element), the call is never auto-approved. The approval prompt shows the resolved target (`target label: Buy now`) so the person sees what they are approving. Labels can be misleading (a button called "Continue" can submit a payment), so treat the gate as a first filter and also resolve the destination (`url`) for irreversible actions.
 
 `confirm_token` is a reserved input name. More in [docs/USAGE.md](docs/USAGE.md), including how to test your own tools with an in-memory client.
@@ -224,10 +227,10 @@ Rules, all fail closed: a gate match always asks a human, even if `autoApprove` 
 ```mermaid
 flowchart LR
     A[Push or pull request] --> B[CI]
-    B --> B1[Build and 86 tests on Node 18, 20, 22]
+    B --> B1[Build and 101 tests on Node 18, 20, 22]
     B --> B2[Demo runs end to end]
     B --> B3[Coverage report]
-    B --> B4[Mutation check: 31 deliberate bugs]
+    B --> B4[Mutation check: 42 deliberate bugs]
     B --> B5[SVG diagrams valid]
     C[Tag v*] --> D[Release]
     D --> D1[Tests]
@@ -259,11 +262,12 @@ jobs:
 
 ## Roadmap
 - [x] Elicitation flow, token fallback, timeouts, audit log, annotations
-- [x] 86 tests, 100% line coverage, mutation check, real stdio tests
+- [x] 101 tests, 100% line coverage, mutation check, real stdio tests
 - [x] Publish to npm
 - [x] Approval channel for headless servers: `mode: "channel"` + `webhookApprover` (point it at a service that can reach Slack or a dashboard)
 - [x] Policy: `autoApprove` lets low-risk calls run, everything else still asks a human
 - [x] Context-aware gating: `resolve` looks up what a call targets (e.g. the label behind `click(element_id)`) and `gate` forces a human decision for labels like buy / delete / send
+- [x] Re-check before execute: `resolve` runs again right before `execute` and the call is refused if the target changed after approval
 - [ ] Python version for FastMCP servers
 
 ## Contributing

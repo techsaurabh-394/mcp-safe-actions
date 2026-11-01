@@ -56,6 +56,18 @@ mutate "context: policy not given the resolved context"     src/register.ts 'cfg
 mutate "context: gate without resolve accepted"             src/register.ts 'if (cfg.gate && !cfg.resolve) {' 'if (false) {'
 mutate "context: resolver result ignored for non-strings"   src/register.ts 'typeof ctx[k] === "string" && re.test' 're.test'
 
+mutate "recheck: changed target still executes"             src/register.ts 'if (now !== ctxHash) {' 'if (false) {'
+mutate "recheck: failed second lookup fails open"           src/register.ts $'      } catch {\n        now = undefined;\n      }' $'      } catch {\n        now = ctxHash;\n      }'
+mutate "recheck: non-object second lookup fails open"       src/register.ts 'if (isPlainObject(r)) now = ctxHashOf(r);' 'now = isPlainObject(r) ? ctxHashOf(r) : ctxHash;'
+mutate "recheck: pinFields ignored"                         src/register.ts 'const keys = cfg.pinFields ?? Object.keys(ctx);' 'const keys = Object.keys(ctx);'
+mutate "recheck: only the first field is compared"          src/register.ts 'const keys = cfg.pinFields ?? Object.keys(ctx);' 'const keys = (cfg.pinFields ?? Object.keys(ctx)).slice(0, 1);'
+mutate "recheck: auto-approved calls skip the recheck"      src/register.ts 'return run(args, "policy", plan.summary, argsHash, ctxHash);' 'return cfg.execute(args);'
+mutate "recheck: token not bound to the target"             src/register.ts 'store.consume(confirm_token, cfg.name, rest, ctxHash)' 'store.consume(confirm_token, cfg.name, rest)'
+mutate "recheck: store ignores the context hash"            src/store.ts 'if (entry.ctxHash !== ctxHash) return { ok: false, reason: "context" };' ''
+mutate "recheck: token issued without the context hash"     src/register.ts 'store.issue(cfg.name, rest, ctxHash)' 'store.issue(cfg.name, rest)'
+mutate "recheck: change is not written to the audit log"    src/register.ts 'emit("context-changed", m, { summary, argsHash, detail: "the target changed between approval and execution" });' ''
+mutate "recheck: changed target reported as success"        src/register.ts 'Look again and ask for approval again.", true);' 'Look again and ask for approval again.");'
+
 restore
 echo
 if [ "$missed" -eq 0 ]; then echo "All bugs were caught by the tests."; else echo "$missed bug(s) slipped through. Strengthen the tests."; exit 1; fi
