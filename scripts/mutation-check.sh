@@ -36,8 +36,14 @@ mutate "mode elicit allows clients with no prompt"          src/register.ts 'if 
 mutate "secret arguments leak into the audit log"           src/register.ts 'emit("executed", m, { summary, argsHash });' 'emit("executed", m, { summary: JSON.stringify(args), argsHash });'
 mutate "a throwing policy fails open"                       src/register.ts 'auto = false; // fail closed' 'auto = true;'
 mutate "any truthy policy value skips the human"            src/register.ts 'auto = (await cfg.autoApprove(args, plan)) === true;' 'auto = Boolean(await cfg.autoApprove(args, plan));'
-mutate "mode elicit lets the policy skip the human"         src/register.ts 'if (cfg.autoApprove && mode !== "elicit") {' 'if (cfg.autoApprove) {'
+mutate "mode elicit lets the policy skip the human"         src/register.ts 'if (cfg.autoApprove && mode !== "elicit" && mode !== "channel") {' 'if (cfg.autoApprove && mode !== "channel") {'
 mutate "policy ignores the answer and always approves"      src/register.ts 'if (auto) {' 'if (true) {'
+mutate "channel: any truthy approver value approves"        src/register.ts '])) === true;' '])) ? true : false;'
+mutate "channel: approver error runs the action"            src/register.ts 'return text(`The approval channel failed, so nothing was changed: ${msg}`, true); // fail closed' 'return run(args, "channel", plan.summary, argsHash);'
+mutate "channel: declined approver still runs the action"   src/register.ts 'if (ok) {' 'if (true) {'
+mutate "channel: autoApprove can skip the approver"         src/register.ts 'mode !== "elicit" && mode !== "channel") {' 'mode !== "elicit") {'
+mutate "webhook: HTTP error status counts as approval"      src/approver.ts 'if (!res.ok) return false;' ''
+mutate "webhook: any truthy approved value approves"        src/approver.ts 'return body.approved === true;' 'return Boolean(body.approved);'
 
 restore
 echo

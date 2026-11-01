@@ -1,29 +1,30 @@
 # Testing
 
 ```bash
-npm test            # build, then 55 tests
+npm test            # build, then 64 tests
 npm run coverage    # same, with Node's built-in coverage report
 npm run mutation    # break the code on purpose; the tests must notice
 npm run demo        # watch both approval flows
 ```
 
-## What the 55 tests cover
+## What the 64 tests cover
 | Group | File | What it proves |
 |---|---|---|
 | Approval flows | `test/safe-actions.test.ts` | Elicitation approve, decline, cancel, unticked box; failure of the prompt fails closed; token flow (preview, approve, reuse, wrong arguments, invented, expired); modes; error paths; tool metadata |
 | Edge cases | `test/edge.test.ts` | Reserved name, prompt timeout, `form` vs `url` elicitation capabilities, argument order, unicode, 5 concurrent previews, **two simultaneous uses of one token run once**, cross-tool tokens with a shared store, custom annotations, token cap, **secret values never reach the audit log** |
 | Store, audit, hashing | `test/store.test.ts`, `test/audit-and-hash.test.ts` | Single-use, binding, expiry boundary, cap and eviction, 1000 unique random tokens, JSONL audit file, audit never throws on a bad path, **property tests** (300 random argument objects: hash ignores key order, changes when values change) |
 | Policy | `test/policy.test.ts` | Low-risk call runs without a prompt and is logged `auto-approved`; high-risk call still asks (decline runs nothing); no-prompt client gets the token flow; a throwing policy fails closed; only exact `true` counts; `mode: "elicit"` ignores the policy |
+| Channel and webhook | `test/channel.test.ts` | Approver `true` runs and receives the plan; `false`, truthy non-`true`, a throw, and a timeout all run nothing; `autoApprove` is ignored; `mode: "channel"` without an approver is rejected at registration; the webhook approver approves only on HTTP 2xx with `{"approved": true}` |
 | Real process, real stdio | `test/stdio.e2e.test.ts` | Spawns the example server as a child process and talks MCP over stdio: preview leaves the file alone, token approval deletes it, audit log written, **path traversal blocked, symlinked-folder escape blocked, folders and symlinks refused, token for one file can't delete another** |
 
 Human behaviour is simulated by an in-memory MCP client that sets `capabilities: { elicitation: {} }` and answers prompts (accept, decline, cancel, error, never answer).
 
 ## Coverage
-Library source (`src/`): **100% of lines and functions**; branches 100% (`audit`, `register`) and 96.8% (`store`).
+Library source (`src/`): **100% of lines and functions**; branches 100% (`audit`), 97.1% (`register`), 96.8% (`store`) and 85.7% (`approver`, the untested default-option branches).
 Run `npm run coverage` for the current numbers.
 
 ## Mutation check: do the tests actually protect the rules?
-High coverage only shows code ran, not that a bug would be caught. `scripts/mutation-check.sh` injects **14 deliberate bugs**, one at a time, runs the suite, and requires it to fail each time:
+High coverage only shows code ran, not that a bug would be caught. `scripts/mutation-check.sh` injects **20 deliberate bugs**, one at a time, runs the suite, and requires it to fail each time:
 
 | Injected bug | Caught |
 |---|---|
@@ -38,6 +39,12 @@ High coverage only shows code ran, not that a bug would be caught. `scripts/muta
 | `mode: "elicit"` allows clients with no prompts | yes |
 | Secret arguments leak into the audit log | yes |
 | A throwing `autoApprove` policy fails open | yes |
+| `mode: "channel"`: any truthy approver value approves | yes |
+| `mode: "channel"`: an approver error runs the action | yes |
+| `mode: "channel"`: a declined approver still runs the action | yes |
+| `mode: "channel"`: `autoApprove` can skip the approver | yes |
+| Webhook: an HTTP error status counts as approval | yes |
+| Webhook: any truthy `approved` value approves | yes |
 | Any truthy policy value (not just `true`) skips the human | yes |
 | `mode: "elicit"` lets the policy skip the human | yes |
 | The policy always approves, ignoring its answer | yes |

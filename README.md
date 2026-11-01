@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/techsaurabh-394/mcp-safe-actions/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/techsaurabh-394/mcp-safe-actions/ci.yml?style=for-the-badge&label=CI" alt="CI"/></a>
-  <img src="https://img.shields.io/badge/tests-55%20passing-brightgreen?style=for-the-badge" alt="55 tests passing"/>
+  <img src="https://img.shields.io/badge/tests-64%20passing-brightgreen?style=for-the-badge" alt="64 tests passing"/>
   <img src="https://img.shields.io/badge/coverage-100%25%20lines-brightgreen?style=for-the-badge" alt="100% line coverage"/>
   <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript strict"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT"/></a>
@@ -84,7 +84,7 @@ git clone https://github.com/techsaurabh-394/mcp-safe-actions.git
 cd mcp-safe-actions
 npm install
 npm run demo      # prints both approval flows
-npm test          # 55 tests
+npm test          # 64 tests
 ```
 
 ### 4. Connect it to an MCP client
@@ -158,13 +158,14 @@ sequenceDiagram
 | `"auto"` (default) | Elicitation if supported, otherwise token | Most servers |
 | `"elicit"` | Elicitation only | Actions that **must** have a human gate |
 | `"token"` | Always the token flow | Testing, or by preference |
+| `"channel"` | Asks your `approver` (e.g. `webhookApprover(url)`) | Headless servers with no client UI |
 
 ## Proof it works: tests that try to break it
 | | |
 |---|---|
-| **55 tests** | Unit, end-to-end (a real MCP client and server in memory), property tests (300 random argument objects), and **real stdio tests** that spawn the example server as a child process |
+| **64 tests** | Unit, end-to-end (a real MCP client and server in memory), property tests (300 random argument objects), and **real stdio tests** that spawn the example server as a child process |
 | **100% line coverage** of the library (`src/`), 96.8% to 100% of branches | `npm run coverage` |
-| **14 deliberate bugs, all caught** | `npm run mutation` breaks the code on purpose (token reusable, approval skipped on error, secrets in the log, ...) and fails if the tests don't notice |
+| **20 deliberate bugs, all caught** | `npm run mutation` breaks the code on purpose (token reusable, approval skipped on error, secrets in the log, ...) and fails if the tests don't notice |
 
 What the tests prove, among other things: a declined prompt never runs the action; a model-supplied token cannot skip the human prompt; tokens are single-use, expire, and only work for the same tool and arguments; two simultaneous uses of one token run the action exactly once; a prompt that times out or crashes fails closed; secret argument values never reach the audit log; the example server blocks path traversal and symlink escapes.
 
@@ -196,6 +197,7 @@ registerConfirmedTool(server, {
   risk?: "destructive" | "write",             // default "destructive" (sets annotations)
   mode?: "auto" | "elicit" | "token",         // default "auto"
   approvalTimeoutMs?: number,                 // default 5 minutes; a timeout means "not approved"
+  approver?: (req) => boolean | Promise<boolean>, // required for mode "channel"
   autoApprove?(args, plan) => boolean,        // optional: exactly `true` skips the prompt for low-risk calls
   store?: new ApprovalStore({ ttlMs, maxPending }),
   audit?: (event) => void | fileAudit(path),
@@ -208,10 +210,10 @@ registerConfirmedTool(server, {
 ```mermaid
 flowchart LR
     A[Push or pull request] --> B[CI]
-    B --> B1[Build and 55 tests on Node 18, 20, 22]
+    B --> B1[Build and 64 tests on Node 18, 20, 22]
     B --> B2[Demo runs end to end]
     B --> B3[Coverage report]
-    B --> B4[Mutation check: 14 deliberate bugs]
+    B --> B4[Mutation check: 20 deliberate bugs]
     B --> B5[SVG diagrams valid]
     C[Tag v*] --> D[Release]
     D --> D1[Tests]
@@ -243,9 +245,9 @@ jobs:
 
 ## Roadmap
 - [x] Elicitation flow, token fallback, timeouts, audit log, annotations
-- [x] 55 tests, 100% line coverage, mutation check, real stdio tests
+- [x] 64 tests, 100% line coverage, mutation check, real stdio tests
 - [ ] Publish to npm
-- [ ] Approval channel hooks (Slack, webhook) for headless servers
+- [x] Approval channel for headless servers: `mode: "channel"` + `webhookApprover` (point it at a service that can reach Slack or a dashboard)
 - [x] Policy: `autoApprove` lets low-risk calls run, everything else still asks a human
 - [ ] Python version for FastMCP servers
 

@@ -3,7 +3,9 @@
 ## 1.2.0
 - `autoApprove(args, plan)` policy: let narrowly-defined low-risk calls run without a prompt; everything else still asks. Only an exact `true` counts, a throwing policy fails closed, and `mode: "elicit"` ignores it
 - New audit event `auto-approved` (audit mode `policy`)
-- 6 new policy tests (55 total) and 4 new mutation checks (14 total, all caught)
+- `mode: "channel"` with an `approver` function and a `webhookApprover(url)` helper, for headless servers. Approves only on an exact `true` (webhook: HTTP 2xx and `{"approved": true}`); errors, other values and timeouts mean not approved. `autoApprove` is ignored in this mode
+- Audit mode `channel`
+- 15 new tests (64 total) and 10 new mutation checks (20 total, all caught)
 
 ## 1.1.0
 - Approval prompt timeout (`approvalTimeoutMs`), counted as "not approved"

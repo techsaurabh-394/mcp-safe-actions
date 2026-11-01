@@ -8,7 +8,7 @@ export interface AuditEvent {
   time: string;
   tool: string;
   event: AuditEventName;
-  mode: "elicit" | "token" | "policy";
+  mode: "elicit" | "token" | "policy" | "channel";
   /** Short human-readable plan. Raw arguments are never logged (they may contain secrets). */
   summary?: string;
   argsHash?: string;

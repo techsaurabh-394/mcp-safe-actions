@@ -5,7 +5,15 @@ import { z } from "zod";
 import type { AuditSink } from "./audit.js";
 import { ApprovalStore, hashArgs } from "./store.js";
 
-export type ConfirmMode = "auto" | "elicit" | "token";
+export interface ApprovalRequest {
+  tool: string;
+  summary: string;
+  details: string[];
+  argsHash: string;
+}
+export type Approver = (req: ApprovalRequest) => boolean | Promise<boolean>;
+
+export type ConfirmMode = "auto" | "elicit" | "token" | "channel";
 
 export interface Preview {
   /** One clear sentence a person can approve, e.g. "Delete report.pdf (1.2 MB)". */
@@ -29,6 +37,7 @@ export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
    * auto  (default): ask the user through MCP elicitation if the client supports it, otherwise use a one-time token.
    * elicit: require elicitation. Clients without it get a refusal and nothing changes.
    * token : always use the two-step token flow.
+   * channel: ask an out-of-band `approver` (webhook, Slack bot, ...) instead of the client. For headless servers. Requires `approver`.
    * Note: `autoApprove` is ignored in "elicit" mode, because that mode means a human must always decide.
    */
   mode?: ConfirmMode;
@@ -43,6 +52,11 @@ export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
    * approval flow (fail closed). Keep it strict: it is a bypass of the human gate. It runs after
    * preview(), and the decision is logged as "auto-approved".
    */
+  /**
+   * Approval channel for `mode: "channel"`. Receives the plan and must resolve to exactly `true` to approve.
+   * A rejection, a throw, a timeout or any other value means "not approved" (fail closed).
+   */
+  approver?: Approver;
   autoApprove?: (args: z.infer<z.ZodObject<Shape>>, plan: Preview) => boolean | Promise<boolean>;
 }
 
@@ -72,10 +86,13 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
   if ("confirm_token" in cfg.inputSchema) {
     throw new Error('"confirm_token" is reserved by mcp-safe-actions. Rename that input.');
   }
+  if (cfg.mode === "channel" && !cfg.approver) {
+    throw new Error('mode "channel" needs an `approver` (see webhookApprover).');
+  }
   const store = cfg.store ?? new ApprovalStore();
   const risk = cfg.risk ?? "destructive";
   const mode: ConfirmMode = cfg.mode ?? "auto";
-  const emit = (event: Parameters<AuditSink>[0]["event"], m: "elicit" | "token" | "policy", extra: { summary?: string; argsHash?: string; detail?: string } = {}) =>
+  const emit = (event: Parameters<AuditSink>[0]["event"], m: "elicit" | "token" | "policy" | "channel", extra: { summary?: string; argsHash?: string; detail?: string } = {}) =>
     cfg.audit?.({ time: new Date().toISOString(), tool: cfg.name, event, mode: m, ...extra });
 
   const shape = {
@@ -98,7 +115,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
     ...cfg.annotations,
   };
 
-  const run = async (args: z.infer<z.ZodObject<Shape>>, m: "elicit" | "token" | "policy", summary: string, argsHash: string): Promise<CallToolResult> => {
+  const run = async (args: z.infer<z.ZodObject<Shape>>, m: "elicit" | "token" | "policy" | "channel", summary: string, argsHash: string): Promise<CallToolResult> => {
     try {
       const result = await cfg.execute(args);
       emit("executed", m, { summary, argsHash });
@@ -127,7 +144,7 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
       const canElicit = clientCanElicit(server);
 
       // Optional low-risk policy. Only an exact `true` skips the human; a throw or any other value asks as usual.
-      if (cfg.autoApprove && mode !== "elicit") {
+      if (cfg.autoApprove && mode !== "elicit" && mode !== "channel") {
         let auto = false;
         try {
           auto = (await cfg.autoApprove(args, plan)) === true;
@@ -138,6 +155,29 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
           emit("auto-approved", "policy", { summary: plan.summary, argsHash });
           return run(args, "policy", plan.summary, argsHash);
         }
+      }
+
+      if (mode === "channel") {
+        emit("previewed", "channel", { summary: plan.summary, argsHash });
+        let ok = false;
+        try {
+          const timeoutMs = cfg.approvalTimeoutMs ?? 5 * 60_000;
+          ok =
+            (await Promise.race([
+              Promise.resolve(cfg.approver!({ tool: cfg.name, summary: plan.summary, details: plan.details ?? [], argsHash })),
+              new Promise<boolean>((_, rej) => setTimeout(() => rej(new Error("approval timed out")), timeoutMs).unref()),
+            ])) === true;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          emit("failed", "channel", { summary: plan.summary, argsHash, detail: `approval channel failed: ${msg}` });
+          return text(`The approval channel failed, so nothing was changed: ${msg}`, true); // fail closed
+        }
+        if (ok) {
+          emit("approved", "channel", { summary: plan.summary, argsHash });
+          return run(args, "channel", plan.summary, argsHash);
+        }
+        emit("declined", "channel", { summary: plan.summary, argsHash });
+        return text("The approver did not approve this action, so nothing was changed. Do not retry unless the user asks again.");
       }
 
       if (mode === "elicit" && !canElicit) {
