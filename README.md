@@ -37,9 +37,9 @@ This library packages that pattern once, with a test suite that proves the safet
 
 ### 1. Install
 ```bash
-npm install github:techsaurabh-394/mcp-safe-actions
+npm install mcp-safe-actions
 ```
-Once it is published to npm: `npm install mcp-safe-actions`.
+Published on npm: https://www.npmjs.com/package/mcp-safe-actions
 You also need `@modelcontextprotocol/sdk` (1.17+) and `zod` (you probably have both). Node 18+.
 
 ### 2. Wrap your dangerous tool
@@ -246,7 +246,7 @@ jobs:
 ## Roadmap
 - [x] Elicitation flow, token fallback, timeouts, audit log, annotations
 - [x] 64 tests, 100% line coverage, mutation check, real stdio tests
-- [ ] Publish to npm
+- [x] Publish to npm
 - [x] Approval channel for headless servers: `mode: "channel"` + `webhookApprover` (point it at a service that can reach Slack or a dashboard)
 - [x] Policy: `autoApprove` lets low-risk calls run, everything else still asks a human
 - [ ] Python version for FastMCP servers

@@ -2,7 +2,7 @@
 
 ## Install
 ```bash
-npm install github:techsaurabh-394/mcp-safe-actions   # or: npm install mcp-safe-actions (after npm publish)
+npm install mcp-safe-actions
 ```
 
 ## Basic tool
