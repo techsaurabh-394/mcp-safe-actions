@@ -22,6 +22,15 @@ export interface Preview {
   details?: string[];
 }
 
+/** What the server looked up about the target of a call, e.g. { label: "Pay now", role: "button", url: "https://shop/checkout" }. */
+export type ResolvedContext = Record<string, unknown>;
+
+/** Gate on what the target IS, not on the tool name. If any string value in `fields` (default: all) matches `pattern`, `autoApprove` is skipped and a human decides. */
+export interface ContextGate {
+  pattern: RegExp;
+  fields?: string[];
+}
+
 export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
   name: string;
   title?: string;
@@ -57,7 +66,27 @@ export interface ConfirmedToolConfig<Shape extends z.ZodRawShape> {
    * A rejection, a throw, a timeout or any other value means "not approved" (fail closed).
    */
   approver?: Approver;
-  autoApprove?: (args: z.infer<z.ZodObject<Shape>>, plan: Preview) => boolean | Promise<boolean>;
+  /**
+   * Optional lookup run before the policy: resolve what the call actually targets (e.g. the label of the element
+   * behind click(element_id)). Must return a plain object. If it throws, times out or returns anything else, the
+   * `autoApprove` bypass is skipped and a human decides (fail closed). The result is passed to `autoApprove`
+   * as a third argument and shown to the human in the approval prompt.
+   */
+  resolve?: (args: z.infer<z.ZodObject<Shape>>) => ResolvedContext | Promise<ResolvedContext>;
+  /** Used with `resolve`: if the resolved context matches, `autoApprove` is skipped. Runs before `autoApprove`. */
+  gate?: ContextGate;
+  autoApprove?: (args: z.infer<z.ZodObject<Shape>>, plan: Preview, context?: ResolvedContext) => boolean | Promise<boolean>;
+}
+
+export function isPlainObject(v: unknown): v is ResolvedContext {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** True if any selected string value matches the gate pattern. Global/sticky flags are stripped so results never depend on lastIndex. */
+export function contextMatchesGate(ctx: ResolvedContext, gate: ContextGate): boolean {
+  const re = new RegExp(gate.pattern.source, gate.pattern.flags.replace(/[gy]/g, ""));
+  const keys = gate.fields ?? Object.keys(ctx);
+  return keys.some((k) => typeof ctx[k] === "string" && re.test(ctx[k] as string));
 }
 
 const text = (t: string, isError = false): CallToolResult => ({
@@ -85,6 +114,9 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
 ): { store: ApprovalStore } {
   if ("confirm_token" in cfg.inputSchema) {
     throw new Error('"confirm_token" is reserved by mcp-safe-actions. Rename that input.');
+  }
+  if (cfg.gate && !cfg.resolve) {
+    throw new Error("`gate` needs a `resolve` function to look up the target first.");
   }
   if (cfg.mode === "channel" && !cfg.approver) {
     throw new Error('mode "channel" needs an `approver` (see webhookApprover).');
@@ -143,11 +175,38 @@ export function registerConfirmedTool<Shape extends z.ZodRawShape>(
       }
       const canElicit = clientCanElicit(server);
 
+      // Optional context lookup. Anything but a plain object means "unknown target", which is never auto-approved.
+      let context: ResolvedContext | undefined;
+      let contextOk = true;
+      if (cfg.resolve) {
+        try {
+          const r = await cfg.resolve(args);
+          if (isPlainObject(r)) context = r;
+          else contextOk = false;
+        } catch {
+          contextOk = false;
+        }
+        if (context) {
+          const lines = Object.entries(context).filter(([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean").map(([k, v]) => `target ${k}: ${String(v)}`);
+          plan = { ...plan, details: [...(plan.details ?? []), ...lines] };
+        } else {
+          plan = { ...plan, details: [...(plan.details ?? []), "target: could not be identified"] };
+        }
+      }
+      let gated = !contextOk;
+      if (!gated && cfg.gate && context) {
+        try {
+          gated = contextMatchesGate(context, cfg.gate);
+        } catch {
+          gated = true;
+        }
+      }
+
       // Optional low-risk policy. Only an exact `true` skips the human; a throw or any other value asks as usual.
-      if (cfg.autoApprove && mode !== "elicit" && mode !== "channel") {
+      if (cfg.autoApprove && mode !== "elicit" && mode !== "channel" && !gated) {
         let auto = false;
         try {
-          auto = (await cfg.autoApprove(args, plan)) === true;
+          auto = (await cfg.autoApprove(args, plan, context)) === true;
         } catch {
           auto = false; // fail closed
         }

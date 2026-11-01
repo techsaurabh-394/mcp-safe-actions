@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Saurabh Pathak. MIT License.
-export { registerConfirmedTool, formatPlan } from "./register.js";
-export type { ConfirmedToolConfig, ConfirmMode, Preview } from "./register.js";
+export { registerConfirmedTool, formatPlan, contextMatchesGate } from "./register.js";
+export type { ConfirmedToolConfig, ConfirmMode, Preview, ResolvedContext, ContextGate } from "./register.js";
 export { ApprovalStore, hashArgs, stableStringify } from "./store.js";
 export type { StoreOptions, ConsumeResult } from "./store.js";
 export { webhookApprover } from "./approver.js";

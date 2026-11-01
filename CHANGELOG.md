@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+- `resolve(args)`: optional lookup of what a call actually targets (for example the label and role of the element behind `click(element_id)`), run before the policy. The result is shown in the approval prompt and passed to `autoApprove` as a third argument
+- `gate: { pattern, fields? }`: if the resolved context matches, `autoApprove` is skipped and a human decides. Checked before the policy, so a policy that returns `true` cannot override it
+- Fail closed: a resolver that throws, rejects or returns anything but a plain object (unknown target) is never auto-approved; a throwing gate also asks the human
+- `gate` without `resolve` is a registration error. Without `resolve` nothing changes from 1.2.0
+- 22 new tests (86 total) and 11 new mutation checks (31 total, all caught)
+
 ## 1.2.0
 - `autoApprove(args, plan)` policy: let narrowly-defined low-risk calls run without a prompt; everything else still asks. Only an exact `true` counts, a throwing policy fails closed, and `mode: "elicit"` ignores it
 - New audit event `auto-approved` (audit mode `policy`)
