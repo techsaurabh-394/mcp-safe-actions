@@ -33,6 +33,13 @@
 
 This library packages that pattern once, with a test suite that proves the safety rules, instead of rebuilding it in every server.
 
+## Try it as a ready-made MCP server
+It also ships a small file server where deleting needs a human OK. Add it to your MCP client config:
+```json
+{ "mcpServers": { "safe-files": { "command": "npx", "args": ["-y", "mcp-safe-actions"], "env": { "FILES_DIR": "/path/to/folder" } } } }
+```
+Tools: `list_files` and `delete_file` (asks you first). Set `AUDIT_LOG` to keep a JSONL log. Listed in the official MCP Registry as `io.github.techsaurabh-394/mcp-safe-actions`.
+
 ## Add it to your MCP server in 4 steps
 
 ### 1. Install

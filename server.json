@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.techsaurabh-394/mcp-safe-actions",
+  "title": "MCP Safe Actions",
+  "description": "File server whose delete tool asks the human first (MCP elicitation or a one-time token), with an audit log.",
+  "repository": {
+    "url": "https://github.com/techsaurabh-394/mcp-safe-actions",
+    "source": "github"
+  },
+  "version": "1.5.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mcp-safe-actions",
+      "version": "1.5.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "FILES_DIR",
+          "description": "Folder the tools may touch (default ./sandbox)",
+          "isRequired": false
+        },
+        {
+          "name": "AUDIT_LOG",
+          "description": "Optional path for the JSONL audit log",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

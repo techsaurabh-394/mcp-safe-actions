@@ -1,6 +1,6 @@
 {
   "name": "mcp-safe-actions",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Make destructive MCP tools safe: asks the human through MCP elicitation, falls back to a one-time approval token for clients without it, and keeps an audit log.",
   "author": "Saurabh Pathak <saurabhpathak394@gmail.com> (https://github.com/techsaurabh-394)",
   "license": "MIT",
@@ -16,7 +16,8 @@
   "files": [
     "dist/src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "server.json"
   ],
   "engines": {
     "node": ">=18"
@@ -57,5 +58,13 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2"
+  },
+  "mcpName": "io.github.techsaurabh-394/mcp-safe-actions",
+  "bin": {
+    "mcp-safe-actions": "dist/src/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
   }
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0
+- Runnable MCP server: `npx mcp-safe-actions` starts a small file server over stdio with `list_files` and a `delete_file` that asks a human first (elicitation, or a one-time token). Settings: `FILES_DIR`, `AUDIT_LOG`
+- Listed in the official MCP Registry as `io.github.techsaurabh-394/mcp-safe-actions` (`mcpName` and `server.json` added)
+- `@modelcontextprotocol/sdk` and `zod` are now also regular dependencies so the server runs through npx. The library API is unchanged
+
 ## 1.4.0
 - Re-check before execute: when a tool uses `resolve`, it is called again right before `execute` and the call is refused if the target is not the one the human approved (the UI can change in between). A failed or non-object second lookup also refuses. Applies to auto-approved, elicited, channel and token calls
 - New `pinFields` option to compare only stable fields (label, role, url) and ignore volatile ones
