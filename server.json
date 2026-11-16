@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.techsaurabh-394/mcp-safe-actions",
   "title": "MCP Safe Actions",
-  "description": "File server whose delete tool asks the human first (MCP elicitation or a one-time token), with an audit log.",
+  "description": "File server whose delete tool asks a human first (elicitation or one-time token), with audit log.",
   "repository": {
     "url": "https://github.com/techsaurabh-394/mcp-safe-actions",
     "source": "github"
