@@ -38,7 +38,9 @@ It also ships a small file server where deleting needs a human OK. Add it to you
 ```json
 { "mcpServers": { "safe-files": { "command": "npx", "args": ["-y", "mcp-safe-actions"], "env": { "FILES_DIR": "/path/to/folder" } } } }
 ```
-Tools: `list_files` and `delete_file` (asks you first). Set `AUDIT_LOG` to keep a JSONL log. Listed in the official MCP Registry as `io.github.techsaurabh-394/mcp-safe-actions`.
+Tools: `list_files` and `delete_file` (asks you first). Set `AUDIT_LOG` to keep a JSONL log. Listed in the official MCP Registry as `io.github.techsaurabh-394/mcp-safe-actions`, and on [Glama](https://glama.ai/mcp/servers/techsaurabh-394/mcp-safe-actions).
+
+<a href="https://glama.ai/mcp/servers/techsaurabh-394/mcp-safe-actions"><img width="380" height="200" src="https://glama.ai/mcp/servers/techsaurabh-394/mcp-safe-actions/badges/card.svg" alt="mcp-safe-actions MCP server" /></a>
 
 ## Add it to your MCP server in 4 steps
 
